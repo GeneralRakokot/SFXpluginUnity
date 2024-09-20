@@ -1,58 +1,76 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using UnityEngine.Rendering;
 
-public class SFXCore
+public static class SFXCore
 {
-    static GameObject SFXNode = null;
-    static ArrayList SFXEffects = new ArrayList();
-    public static void Enter()
+    private static GameObject SFXRoot = null;
+    private static ArrayList SFXNodes = new ArrayList();
+
+    //Main method for plaing SFXeffects (name - sound name in folder "Resources", randomPitch - variability).
+    //You can create "Resources" folder anywhere.
+    public static void Play(string name, float randomPitch = 0.15f)
     {
-        if (SFXNode == null)
+        if (name == "")
         {
-            GameObject EmptyObject = new GameObject("SFXNode");
-            EmptyObject.transform.parent = Global.Anchor.transform;
-
-            SFXNode = EmptyObject;
+            //Debug.Log("Empty name");
+            return;
         }
-    }
 
-    public static void Play(string name)
-    {
-        AudioSource FreeNode = FindFreeSFXEffect();
+        AudioSource FreeNode = FindFreeNode();
         FreeNode.clip = Resources.Load<AudioClip>(name);
 
-        float randomPitch = UnityEngine.Random.Range(0.95f, 1.05f);
-        FreeNode.pitch = randomPitch;
+        randomPitch = Mathf.Clamp(randomPitch, 0f, 1f);
+        float currentPitch = UnityEngine.Random.Range(1f - randomPitch, 1f + randomPitch);
+        FreeNode.pitch = currentPitch;
 
         FreeNode.Play();
     }
 
-    private static AudioSource CreateSFXEffectNode()
+    public static void Play(string[] names, float randomPitch = 0.15f)
     {
-        if (SFXNode != null)
+        if (names.Length == 0)
         {
-            GameObject EmptyObject = new GameObject(SFXEffects.Count.ToString());
-            EmptyObject.transform.parent = SFXNode.transform;
-            AudioSource newAudioSource = EmptyObject.AddComponent<AudioSource>();
-            SFXEffects.Add(newAudioSource);
-            return newAudioSource;
+            //Debug.Log("Empty names array");
+            return;
         }
-        Debug.Log("SFXNode not found!!!!!");
-        return null;
+
+        AudioSource FreeNode = FindFreeNode();
+        string name = names[Random.Range(0, names.Length - 1)];
+        FreeNode.clip = Resources.Load<AudioClip>(name);
+
+        randomPitch = Mathf.Clamp(randomPitch, 0f, 1f);
+        float currentPitch = Random.Range(1f - randomPitch, 1f + randomPitch);
+        FreeNode.pitch = currentPitch;
+
+        FreeNode.Play();
     }
-    private static AudioSource FindFreeSFXEffect()
+
+    private static AudioSource FindFreeNode()
     {
-        //if (SFXEffects.Count == 0) { return CreateSFXEffectNode(); }
-        foreach (AudioSource effect in SFXEffects) 
-        { 
-            if (!effect.isPlaying)
+        foreach (AudioSource audioNode in SFXNodes)
+        {
+            if (!audioNode.isPlaying)
             {
-                return effect;
+                return audioNode;
             }
         }
-        return CreateSFXEffectNode();
+        return CreateSFXNode();
+    }
+
+    static AudioSource CreateSFXNode()
+    {
+        if (SFXRoot == null)
+        {
+        SFXRoot = new GameObject("SFXRoot");
+        Object.DontDestroyOnLoad(SFXRoot);
+        }
+
+        GameObject obj = new GameObject("Effect" + SFXNodes.Count);
+        obj.transform.SetParent(SFXRoot.transform);
+        AudioSource audioSource = obj.AddComponent<AudioSource>();
+
+        SFXNodes.Add(audioSource);
+
+        return audioSource;
     }
 }
